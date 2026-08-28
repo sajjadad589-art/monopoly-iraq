@@ -1,0 +1,133 @@
+', lastRoll:[1,1], doublesInTurn:0,
+  owners:Array(40).fill(null), buildings:Array(40).fill(0), mortgages:Array(40).fill(false),
+  bankHouses:HOUSE_LIMIT, bankHotels:HOTEL_LIMIT,
+  chance:[], community:[], chanceDiscard:[], communityDiscard:[],
+  pendingPurchase:null, pendingPayment:null, extraRentMultiplier:1, utilitySpecial:false,
+  playerCount:4, rolling:false
+};
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const money = n => `${Math.round(n).toLocaleString('en-US')} ${CURRENCY}`;
+const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
+const shuffle = arr => [...arr].sort(()=>Math.random()-.5);
+
+function log(message){
+  const el=$('#gameLog');
+  const div=document.createElement('div'); div.className='log-entry'; div.innerHTML=message;
+  el.prepend(div);
+}
+
+function setupUI(){
+  const count=$('#playerCount');
+  [2,3,4,5,6].forEach(n=>{const b=document.createElement('button');b.className='count-btn'+(n===4?' active':'');b.textContent=n;b.onclick=()=>{state.playerCount=n;$$('.count-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderNameInputs();};count.appendChild(b)});
+  renderNameInputs();
+  $('#startBtn').onclick=startGame;
+}
+function renderNameInputs(){
+  const root=$('#nameInputs');root.innerHTML='';
+  for(let i=0;i<state.playerCount;i++){
+    const input=document.createElement('input');input.placeholder=`اسم اللاعب ${i+1}`;input.value=['سجاد','فرح','علي','نور','حسين','مريم'][i]||'';input.dataset.idx=i;root.appendChild(input)
+  }
+}
+
+function startGame(){
+  const names=$$('#nameInputs input').map((x,i)=>x.value.trim()||`اللاعب ${i+1}`);
+  state.players=names.map((name,i)=>({id:i,name,color:PLAYER_COLORS[i],icon:PLAYER_ICONS[i],cash:START_CASH,pos:0,inJail:false,jailTurns:0,jailCards:{chance:0,community:0},bankrupt:false}));
+  state.owners=Array(40).fill(null);state.buildings=Array(40).fill(0);state.mortgages=Array(40).fill(false);
+  state.bankHouses=HOUSE_LIMIT;state.bankHotels=HOTEL_LIMIT;state.current=0;state.doublesInTurn=0;
+  state.chance=shuffle(CHANCE_TEMPLATE);state.community=shuffle(COMMUNITY_TEMPLATE);state.chanceDiscard=[];state.communityDiscard=[];
+  $('#setupScreen').classList.add('hidden');$('#gameScreen').classList.remove('hidden');
+  buildBoard();render(); log(`<b>بدأت اللعبة</b> مع ${state.players.length} لاعبين. الرصيد ${money(START_CASH)}.`);
+  beginTurn();
+}
+
+function buildBoard(){
+  const board=$('#board');
+  $$('.space').forEach(x=>x.remove());
+  BOARD.forEach((space,i)=>{
+    const el=document.createElement('div');el.className='space';el.dataset.index=i;
+    const pos=gridPosition(i); el.style.gridColumn=pos.c;el.style.gridRow=pos.r;
+    el.classList.add(pos.side);if([0,10,20,30].includes(i))el.classList.add('corner');
+    const group=space.group?GROUPS[space.group]:null;
+    if(group){el.style.setProperty('--group',group.color);const bar=document.createElement('div');bar.className='bar';el.appendChild(bar)}
+    const inner=document.createElement('div');inner.className='inner';
+    const icon=spaceIcon(space); inner.innerHTML=`<div class="icon">${icon}</div><div class="name">${space.name}</div>${space.price?`<div class="price">${money(space.price)}</div>`:''}`;
+    el.appendChild(inner);
+    const builds=document.createElement('div');builds.className='buildings';builds.dataset.buildings=i;el.appendChild(builds);
+    board.appendChild(el);
+  });
+}
+function gridPosition(i){
+  // User-approved orientation:
+  // 0 bottom-left (Start), 10 top-left (Jail), 20 top-right (Free Parking), 30 bottom-right (Go To Jail).
+  if(i===0)return{r:11,c:1,side:'corner'};
+  if(i>0&&i<10)return{r:11-i,c:1,side:'side-left'};
+  if(i===10)return{r:1,c:1,side:'corner'};
+  if(i>10&&i<20)return{r:1,c:i-9,side:'side-top'};
+  if(i===20)return{r:1,c:11,side:'corner'};
+  if(i>20&&i<30)return{r:i-19,c:11,side:'side-right'};
+  if(i===30)return{r:11,c:11,side:'corner'};
+  return{r:11,c:41-i,side:'side-bottom'};
+}
+function spaceIcon(s){
+  if(s.icon)return s.icon;
+  if(s.type==='property')return ['🏘️','🏢','🕌','🏙️'][Math.floor(Math.random()*4)];
+  if(s.type==='railroad')return '🚂';if(s.type==='utility')return s.name==='الماء'?'🚰':'💡';return '';
+}
+
+function render(){
+  renderPlayers();renderBoardState();renderTokens();renderSpaceCard();renderActions();
+  $('#bankHouses').textContent=state.bankHouses;$('#bankHotels').textContent=state.bankHotels;
+  const p=currentPlayer();$('#turnName').textContent=p?p.name:'—';
+}
+function renderPlayers(){
+  const root=$('#playersPanel');root.innerHTML='';
+  state.players.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='player-card'+(i===state.current?' active':'')+(p.bankrupt?' bankrupt':'');d.style.setProperty('--pc',p.color);
+    const assets=state.owners.filter(o=>o===p.id).length;
+    d.innerHTML=`<div class="player-head"><strong>${p.icon} ${p.name}</strong><span class="player-token-mini"></span></div><div class="cash">${money(p.cash)}</div><div class="asset-count">${assets} ملكية</div>${p.inJail?'<div class="jail-label">⛓️ في السجن</div>':''}`;
+    root.appendChild(d);
+  });
+}
+function renderBoardState(){
+  BOARD.forEach((s,i)=>{
+    const el=$(`.space[data-index="${i}"]`);if(!el)return;
+    el.classList.toggle('mortgaged',state.mortgages[i]);
+    if(state.owners[i]!=null){el.classList.add('owned');el.style.setProperty('--owner',state.players[state.owners[i]]?.color||'#333')}else{el.classList.remove('owned')}
+    const b=el.querySelector('.buildings');b.innerHTML='';const n=state.buildings[i];
+    if(n===5)b.innerHTML='<span class="hotel">🏨</span>';else for(let k=0;k<n;k++)b.innerHTML+='<span class="house">🏠</span>';
+  });
+}
+function renderTokens(){
+  const layer=$('#tokensLayer');layer.innerHTML='';
+  state.players.forEach((p,idx)=>{if(p.bankrupt)return;const el=document.createElement('div');el.className='token'+(p.inJail?' jailed':'');el.style.setProperty('--pc',p.color);const pt=tokenPosition(p.pos,idx);el.style.left=pt.x+'%';el.style.top=pt.y+'%';el.title=p.name;layer.appendChild(el)});
+  updateCamera();
+}
+function tokenPosition(pos,offset=0){
+  const o=(offset%3-1)*1.6;
+  if(pos===0)return{x:6+o,y:94-o};
+  if(pos>0&&pos<10)return{x:6+o,y:94-pos*8.8-o};
+  if(pos===10)return{x:6+o,y:6-o};
+  if(pos>10&&pos<20)return{x:6+(pos-10)*8.8+o,y:6-o};
+  if(pos===20)return{x:94+o,y:6-o};
+  if(pos>20&&pos<30)return{x:94+o,y:6+(pos-20)*8.8-o};
+  if(pos===30)return{x:94+o,y:94-o};
+  return{x:94-(pos-30)*8.8+o,y:94-o};
+}
+function updateCamera(){
+  const p=currentPlayer();if(!p)return;let rot=0;
+  if(p.pos>0&&p.pos<10)rot=-90;else if(p.pos>=10&&p.pos<20)rot=180;else if(p.pos>=20&&p.pos<30)rot=90;else rot=0;
+  $('#board').style.setProperty('--rot',`${rot}deg`);
+}
+function renderSpaceCard(){
+  const p=currentPlayer();if(!p)return;const s=BOARD[p.pos];
+  $('#spaceName').textContent=s.name;const group=s.group?GROUPS[s.group]:null;$('#spaceColor').style.background=group?.color||'#8394a3';
+  let meta='';if(s.price)meta=`سعر الشراء ${money(s.price)}`;else if(s.type==='tax')meta=`ادفع ${money(s.amount)}`;else if(s.type==='go')meta=`استلم ${money(GO_REWARD)} عند المرور.`;else meta=typeDescription(s.type);
+  $('#spaceMeta').textContent=meta;
+  const owner=state.owners[p.pos];$('#spaceOwner').textContent=owner!=null?`المالك: ${state.players[owner].name}${state.mortgages[p.pos]?' • مرهونة':''}`:'';
+}
+function typeDescription(type){return({chance:'اسحب بطاقة فرصة.',community:'اسحب بطاقة صندوق الحظ.',jail:'زيارة فقط، إلا إذا كنت مسجوناً.',free:'استراحة بدون مكافأة مالية حسب القاعدة الرسمية.',gotojail:'اذهب مباشرة إلى السجن.',utility:'خدمة عامة.',railroad:'محطة.'})[type]||''}
+function renderActions(){
+  const p=currentPlayer();if(!p)return;const s=BOARD[p.pos];
+  $('#rollBtn').classLi
