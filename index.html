@@ -13,11 +13,10 @@
       <div class="setup-card">
         <div class="brand-mark">🇮🇶</div>
         <h1>مونوبولي العراق</h1>
-        <p>نسخة عراقية ثلاثية الأبعاد مستوحاة من قواعد لعبة العقارات الكلاسيكية.</p>
+        <p>لعبة عقارات عراقية ثلاثية الأبعاد بقواعد لعب كاملة.</p>
 
         <label>عدد اللاعبين</label>
         <div class="player-count" id="playerCount"></div>
-
         <div id="nameInputs" class="name-inputs"></div>
 
         <button id="startBtn" class="btn primary big">ابدأ اللعبة</button>
@@ -28,10 +27,7 @@
     <section id="gameScreen" class="screen game-screen hidden">
       <header class="topbar">
         <button class="icon-btn" id="menuBtn">☰</button>
-        <div class="turn-pill">
-          <span>الدور:</span>
-          <strong id="turnName">—</strong>
-        </div>
+        <div class="turn-pill"><span>الدور:</span> <strong id="turnName">—</strong></div>
         <div class="bank-pill">🏦 البنك <b id="bankHouses">32</b> 🏠 / <b id="bankHotels">12</b> 🏨</div>
       </header>
 
@@ -41,18 +37,19 @@
         <section class="board-stage">
           <div class="board-perspective">
             <div id="board" class="board">
+              <div class="board-thickness"></div>
               <div class="board-center">
-                <div class="iraq-diorama">
-                  <span>🕌</span><span>🌴</span><span>🏛️</span><span>🌊</span>
-                </div>
-                <div class="logo">مونوبولي<br><em>العراق</em></div>
-                <div class="deck-row">
-                  <div class="deck community">صندوق الحظ</div>
-                  <div class="dice-zone">
-                    <div class="die" id="die1">⚀</div>
-                    <div class="die" id="die2">⚀</div>
+                <div id="threeScene" class="three-scene" aria-hidden="true"></div>
+                <div class="center-overlay">
+                  <div class="logo">مونوبولي <em>العراق</em></div>
+                  <div class="deck-row">
+                    <div class="deck community">صندوق الحظ</div>
+                    <div class="dice-zone">
+                      <div class="die" id="die1">⚀</div>
+                      <div class="die" id="die2">⚀</div>
+                    </div>
+                    <div class="deck chance">فرصة</div>
                   </div>
-                  <div class="deck chance">فرصة</div>
                 </div>
               </div>
               <div id="tokensLayer" class="tokens-layer"></div>
@@ -90,7 +87,6 @@
   </div>
 
   <div id="modalRoot"></div>
-
   <template id="modalTemplate">
     <div class="modal-backdrop">
       <div class="modal-card">
@@ -100,6 +96,8 @@
     </div>
   </template>
 
+  <script src="https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.min.js"></script>
+  <script src="three-scene.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
