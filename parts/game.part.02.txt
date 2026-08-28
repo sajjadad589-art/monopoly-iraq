@@ -1,0 +1,122 @@
+st.toggle('hidden',state.phase!=='roll');$('#rollBtn').disabled=state.rolling;
+  $('#buyBtn').classList.toggle('hidden',!(state.phase==='purchase'&&state.pendingPurchase===p.pos&&p.cash>=s.price));
+  $('#auctionBtn').classList.toggle('hidden',state.phase!=='purchase');
+  $('#endTurnBtn').classList.toggle('hidden',state.phase!=='end');
+  $('#payJailBtn').classList.toggle('hidden',!(state.phase==='roll'&&p.inJail&&p.cash>=JAIL_FINE));
+  $('#useJailCardBtn').classList.toggle('hidden',!(state.phase==='roll'&&p.inJail&&(p.jailCards.chance+p.jailCards.community>0)));
+}
+
+function currentPlayer(){return state.players[state.current]}
+function activePlayers(){return state.players.filter(p=>!p.bankrupt)}
+function beginTurn(){
+  if(activePlayers().length<=1){finishGame();return}
+  const p=currentPlayer();if(!p||p.bankrupt){advancePlayer();return}
+  state.phase='roll';state.doublesInTurn=0;state.pendingPurchase=null;state.pendingPayment=null;state.extraRentMultiplier=1;state.utilitySpecial=false;
+  setStatus(p.inJail?`${p.name} في السجن: ارمِ دبل للخروج، أو ادفع 50، أو استخدم بطاقة الخروج.`:`دور ${p.name}: ارمِ النرد.`);render();
+}
+function setStatus(t){$('#statusStrip').textContent=t}
+
+$('#rollBtn').onclick=rollDice;
+$('#buyBtn').onclick=buyCurrent;
+$('#auctionBtn').onclick=()=>startAuction(state.pendingPurchase);
+$('#endTurnBtn').onclick=endTurn;
+$('#payJailBtn').onclick=payToLeaveJail;
+$('#useJailCardBtn').onclick=useJailCard;
+$('#manageBtn').onclick=openManage;
+$('#tradeBtn').onclick=openTrade;
+$('#menuBtn').onclick=openRules;
+
+async function rollDice(){
+  if(state.phase!=='roll'||state.rolling)return;state.rolling=true;renderActions();
+  $('#die1').classList.add('rolling');$('#die2').classList.add('rolling');
+  await delay(500);const d1=1+Math.floor(Math.random()*6),d2=1+Math.floor(Math.random()*6);state.lastRoll=[d1,d2];
+  $('#die1').textContent=dieFace(d1);$('#die2').textContent=dieFace(d2);$('#die1').classList.remove('rolling');$('#die2').classList.remove('rolling');state.rolling=false;
+  const p=currentPlayer();const doubles=d1===d2;log(`<b>${p.name}</b> رمى ${d1} + ${d2} = ${d1+d2}${doubles?' (دبل)':''}.`);
+
+  if(p.inJail){
+    if(doubles){p.inJail=false;p.jailTurns=0;setStatus('خرجت من السجن بالدبل.');await moveBy(d1+d2,false);await resolveLanding({fromJail:true});state.phase='end';render();return}
+    p.jailTurns++;
+    if(p.jailTurns>=3){
+      if(await charge(p.id,JAIL_FINE,null,'غرامة الخروج من السجن')){p.inJail=false;p.jailTurns=0;await moveBy(d1+d2,false);await resolveLanding({fromJail:true});}
+      state.phase='end';render();return;
+    }
+    setStatus(`لم ترمِ دبل. المحاولة ${p.jailTurns}/3.`);state.phase='end';render();return;
+  }
+
+  if(doubles){state.doublesInTurn++;if(state.doublesInTurn>=3){sendToJail('ثلاث دبلات متتالية');state.phase='end';render();return}}
+  await moveBy(d1+d2,true);await resolveLanding();
+  if(state.phase==='end'&&doubles&&!p.inJail&&!p.bankrupt){state.phase='roll';setStatus('دبل! لديك رمية إضافية.');}
+  render();
+}
+function dieFace(n){return['⚀','⚁','⚂','⚃','⚄','⚅'][n-1]}
+function delay(ms){return new Promise(r=>setTimeout(r,ms))}
+
+async function moveBy(steps,collectGo=true){
+  const p=currentPlayer();
+  for(let k=0;k<steps;k++){
+    const old=p.pos;p.pos=(p.pos+1)%40;
+    if(p.pos===0&&old===39&&collectGo){p.cash+=GO_REWARD;log(`<b>${p.name}</b> عبر نقطة البداية واستلم ${money(GO_REWARD)}.`)}
+    renderTokens();renderPlayers();await delay(170);
+  }
+}
+async function moveTo(target,collect=true){
+  const p=currentPlayer();const old=p.pos;
+  if(collect&&target<old){p.cash+=GO_REWARD;log(`<b>${p.name}</b> مرّ بنقطة البداية واستلم ${money(GO_REWARD)}.`)}
+  p.pos=target;render();await delay(250);
+}
+
+async function resolveLanding(opts={}){
+  const p=currentPlayer(),s=BOARD[p.pos];state.pendingPurchase=null;renderSpaceCard();
+  if(s.type==='go'||s.type==='free'||s.type==='jail'){state.phase='end';setStatus(s.type==='free'?'الاستراحة: لا توجد جائزة نقدية وفق القاعدة الرسمية.':'انتهت الحركة.');return}
+  if(s.type==='gotojail'){sendToJail('وقفت على اذهب إلى السجن');state.phase='end';return}
+  if(s.type==='tax'){await charge(p.id,s.amount,null,s.name);state.phase='end';return}
+  if(s.type==='chance'){await drawCard('chance');return}
+  if(s.type==='community'){await drawCard('community');return}
+  if(['property','railroad','utility'].includes(s.type)){
+    const owner=state.owners[p.pos];
+    if(owner==null){state.pendingPurchase=p.pos;state.phase='purchase';setStatus(`${s.name} غير مملوكة. يمكنك شراؤها بـ ${money(s.price)} أو طرحها في المزاد.`);return}
+    if(owner===p.id){state.phase='end';setStatus('هذه الملكية لك.');return}
+    if(state.mortgages[p.pos]){state.phase='end';setStatus('الملكية مرهونة، لا إيجار عليها.');return}
+    const rent=calculateRent(p.pos,opts);await charge(p.id,rent,owner,`إيجار ${s.name}`);state.phase='end';return;
+  }
+  state.phase='end';
+}
+function calculateRent(index,opts={}){
+  const s=BOARD[index],owner=state.owners[index];
+  if(s.type==='property'){
+    const b=state.buildings[index];let r=s.rent[b];
+    if(b===0&&hasMonopoly(owner,s.group))r*=2;
+    return r*state.extraRentMultiplier;
+  }
+  if(s.type==='railroad'){
+    const n=BOARD.reduce((c,x,i)=>c+(x.type==='railroad'&&state.owners[i]===owner&&!state.mortgages[i]?1:0),0);
+    return 25*Math.pow(2,Math.max(0,n-1))*state.extraRentMultiplier;
+  }
+  if(s.type==='utility'){
+    const n=BOARD.reduce((c,x,i)=>c+(x.type==='utility'&&state.owners[i]===owner&&!state.mortgages[i]?1:0),0);
+    const mult=state.utilitySpecial?10:(n>=2?10:4);return (state.lastRoll[0]+state.lastRoll[1])*mult;
+  }
+  return 0;
+}
+function hasMonopoly(playerId,group){
+  const inds=BOARD.map((s,i)=>s.group===group?i:-1).filter(i=>i>=0);return inds.length>0&&inds.every(i=>state.owners[i]===playerId);
+}
+
+function buyCurrent(){
+  const p=currentPlayer(),i=state.pendingPurchase,s=BOARD[i];if(i==null||p.cash<s.price)return;
+  p.cash-=s.price;state.owners[i]=p.id;state.pendingPurchase=null;state.phase='end';log(`<b>${p.name}</b> اشترى ${s.name} مقابل ${money(s.price)}.`);setStatus(`تم شراء ${s.name}.`);render();
+}
+
+function startAuction(index){
+  if(index==null)return;const s=BOARD[index];state.phase='modal';
+  const bidders=activePlayers().filter(p=>!p.bankrupt);let active=[...bidders],turn=0,bid=0,leader=null;
+  const modal=openModal(`مزاد: ${s.name}`,body=>{
+    body.innerHTML=`<p>حسب القاعدة الرسمية، إذا لم تُشترَ الملكية تُطرح بالمزاد لجميع اللاعبين.</p><div class="auction-bid" id="auctionBid">${money(0)}</div><div class="auction-player" id="auctionPlayer"></div><div class="auction-controls"><button class="btn primary" data-inc="1">+1</button><button class="btn primary" data-inc="10">+10</button><button class="btn primary" data-inc="50">+50</button><button class="btn danger" id="passBid">انسحاب</button></div>`;
+  },false);
+  const update=()=>{
+    if(active.length===1&&leader===active[0]){finishAuction();return}
+    if(active.length===0){closeModal(modal);state.pendingPurchase=null;state.phase='end';setStatus('انتهى المزاد بلا مشترٍ.');render();return}
+    turn%=active.length;const p=active[turn];modal.querySelector('#auctionPlayer').textContent=`الدور في المزاد: ${p.name} — الرصيد ${money(p.cash)}`;modal.querySelector('#auctionBid').textContent=money(bid);
+  };
+  modal.querySelectorAll('[data-inc]').forEach(btn=>btn.onclick=()=>{const p=active[turn],nb=bid+Number(btn.dataset.inc);if(nb>p.cash){alert('الرصيد غير كافٍ');return}bid=nb;leader=p;turn++;update()});
+  modal.querySelector('#passBid').on
