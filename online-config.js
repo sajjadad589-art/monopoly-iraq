@@ -1,0 +1,1 @@
+window.MONOPOLY_CONFIG={supabaseUrl:'https://rrwpguopveujhzejlthf.supabase.co',supabaseKey:'sb_publishable_UoDVBzkIMojstb-9r9SSTQ_uN_wjXs7',entryFee:1000};
