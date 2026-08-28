@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#07131f" />
+  <title>مونوبولي العراق</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <section id="setupScreen" class="screen setup-screen">
+      <div class="setup-card">
+        <div class="brand-mark">🇮🇶</div>
+        <h1>مونوبولي العراق</h1>
+        <p>نسخة عراقية ثلاثية الأبعاد مستوحاة من قواعد لعبة العقارات الكلاسيكية.</p>
+
+        <label>عدد اللاعبين</label>
+        <div class="player-count" id="playerCount"></div>
+
+        <div id="nameInputs" class="name-inputs"></div>
+
+        <button id="startBtn" class="btn primary big">ابدأ اللعبة</button>
+        <p class="micro">الرصيد الابتدائي لكل لاعب: <b>1,500 د.ع</b></p>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen game-screen hidden">
+      <header class="topbar">
+        <button class="icon-btn" id="menuBtn">☰</button>
+        <div class="turn-pill">
+          <span>الدور:</span>
+          <strong id="turnName">—</strong>
+        </div>
+        <div class="bank-pill">🏦 البنك <b id="bankHouses">32</b> 🏠 / <b id="bankHotels">12</b> 🏨</div>
+      </header>
+
+      <main class="game-layout">
+        <aside class="players-panel" id="playersPanel"></aside>
+
+        <section class="board-stage">
+          <div class="board-perspective">
+            <div id="board" class="board">
+              <div class="board-center">
+                <div class="iraq-diorama">
+                  <span>🕌</span><span>🌴</span><span>🏛️</span><span>🌊</span>
+                </div>
+                <div class="logo">مونوبولي<br><em>العراق</em></div>
+                <div class="deck-row">
+                  <div class="deck community">صندوق الحظ</div>
+                  <div class="dice-zone">
+                    <div class="die" id="die1">⚀</div>
+                    <div class="die" id="die2">⚀</div>
+                  </div>
+                  <div class="deck chance">فرصة</div>
+                </div>
+              </div>
+              <div id="tokensLayer" class="tokens-layer"></div>
+            </div>
+          </div>
+
+          <div class="status-strip" id="statusStrip">ابدأ برمي النرد.</div>
+
+          <div class="action-bar">
+            <button id="rollBtn" class="btn primary">🎲 رمي النرد</button>
+            <button id="buyBtn" class="btn gold hidden">🏠 شراء</button>
+            <button id="auctionBtn" class="btn secondary hidden">🔨 مزاد</button>
+            <button id="payJailBtn" class="btn secondary hidden">🔓 دفع 50 والخروج</button>
+            <button id="useJailCardBtn" class="btn secondary hidden">🎫 استخدم بطاقة الخروج</button>
+            <button id="manageBtn" class="btn secondary">🏗️ أملاكي</button>
+            <button id="tradeBtn" class="btn secondary">🤝 تداول</button>
+            <button id="endTurnBtn" class="btn danger hidden">إنهاء الدور</button>
+          </div>
+        </section>
+
+        <aside class="info-panel">
+          <div class="panel-card current-space-card" id="spaceCard">
+            <div class="space-color" id="spaceColor"></div>
+            <h3 id="spaceName">نقطة البداية</h3>
+            <p id="spaceMeta">استلم 200 د.ع عند المرور.</p>
+            <div id="spaceOwner" class="owner-line"></div>
+          </div>
+          <div class="panel-card log-card">
+            <h3>سجل اللعبة</h3>
+            <div id="gameLog" class="game-log"></div>
+          </div>
+        </aside>
+      </main>
+    </section>
+  </div>
+
+  <div id="modalRoot"></div>
+
+  <template id="modalTemplate">
+    <div class="modal-backdrop">
+      <div class="modal-card">
+        <div class="modal-header"><h2 class="modal-title"></h2><button class="modal-close">✕</button></div>
+        <div class="modal-body"></div>
+      </div>
+    </div>
+  </template>
+
+  <script src="game.js"></script>
+</body>
+</html>
