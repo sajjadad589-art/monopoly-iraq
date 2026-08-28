@@ -1,0 +1,40 @@
+eshManage(m,pid)});
+  m.querySelectorAll('[data-mortgage]').forEach(b=>b.onclick=()=>{toggleMortgage(Number(b.dataset.mortgage));refreshManage(m,pid)});
+  m.querySelector('.modal-close').onclick=()=>{closeModal(m);state.phase=callback?'modal':'end';render();if(callback)callback()};
+}
+function refreshManage(modal,pid){closeModal(modal);openManage(null,pid)}
+function assetHTML(s,i,pid){const b=state.buildings[i],g=s.group?GROUPS[s.group]:null;const mortgage=Math.floor((s.price||0)/2);return `<div class="asset-item"><h4>${s.name}</h4><p>${g?g.name:s.type==='railroad'?'محطة':'خدمة'} • ${state.mortgages[i]?'مرهونة':'فعالة'} • ${b===5?'فندق':`${b} بيت`}</p><div class="asset-buttons">${s.type==='property'?`<button class="mini-btn good" data-build="${i}">بناء</button><button class="mini-btn bad" data-sellbuild="${i}">بيع بناء</button>`:''}<button class="mini-btn" data-mortgage="${i}">${state.mortgages[i]?`فك الرهن ${money(Math.ceil(mortgage*1.1))}`:`رهن ${money(mortgage)}`}</button></div></div>`}
+function buildHouse(i){const p=currentPlayer(),s=BOARD[i],g=GROUPS[s.group];if(!s.group||state.owners[i]!==p.id)return alert('ليست ملكك');if(!hasMonopoly(p.id,s.group))return alert('يجب امتلاك كامل المجموعة أولاً.');const groupInd=BOARD.map((x,k)=>x.group===s.group?k:-1).filter(k=>k>=0);if(groupInd.some(k=>state.mortgages[k]))return alert('لا يمكن البناء مع وجود عقار مرهون في المجموعة.');const b=state.buildings[i],min=Math.min(...groupInd.map(k=>state.buildings[k]));if(b>min)return alert('يجب البناء بالتساوي على المجموعة.');if(p.cash<g.houseCost)return alert('الرصيد غير كافٍ.');if(b>=5)return alert('يوجد فندق بالفعل.');if(b<4){if(state.bankHouses<=0)return alert('لا توجد بيوت متاحة في البنك.');p.cash-=g.houseCost;state.bankHouses--;state.buildings[i]++}else{if(state.bankHotels<=0)return alert('لا توجد فنادق متاحة في البنك.');p.cash-=g.houseCost;state.bankHotels--;state.bankHouses+=4;state.buildings[i]=5}log(`<b>${p.name}</b> بنى على ${s.name}.`);render()}
+function sellBuilding(i){const p=currentPlayer(),s=BOARD[i],g=GROUPS[s.group],b=state.buildings[i];if(!b)return alert('لا يوجد بناء للبيع.');const groupInd=BOARD.map((x,k)=>x.group===s.group?k:-1).filter(k=>k>=0),max=Math.max(...groupInd.map(k=>state.buildings[k]));if(b<max)return alert('يجب بيع المباني بالتساوي من المجموعة.');if(b===5){if(state.bankHouses<4)return alert('لا توجد 4 بيوت في البنك لاستبدال الفندق.');state.bankHotels++;state.bankHouses-=4;state.buildings[i]=4}else{state.bankHouses++;state.buildings[i]--}p.cash+=Math.floor(g.houseCost/2);log(`<b>${p.name}</b> باع بناءً في ${s.name}.`);render()}
+function toggleMortgage(i){const p=currentPlayer(),s=BOARD[i];if(state.owners[i]!==p.id)return;const value=Math.floor(s.price/2);
+  if(!state.mortgages[i]){
+    if(s.group){const inds=BOARD.map((x,k)=>x.group===s.group?k:-1).filter(k=>k>=0);if(inds.some(k=>state.buildings[k]>0))return alert('بع جميع مباني المجموعة قبل الرهن.')}
+    state.mortgages[i]=true;p.cash+=value;log(`<b>${p.name}</b> رهن ${s.name} مقابل ${money(value)}.`)
+  }else{const cost=Math.ceil(value*1.1);if(p.cash<cost)return alert('الرصيد غير كافٍ لفك الرهن.');p.cash-=cost;state.mortgages[i]=false;log(`<b>${p.name}</b> فك رهن ${s.name} مقابل ${money(cost)}.`)}render()}
+
+function openTrade(){
+  const p=currentPlayer(),others=activePlayers().filter(x=>x.id!==p.id);if(!others.length)return;
+  state.phase='modal';const m=openModal('تداول بين اللاعبين',body=>{
+    body.innerHTML=`<label>التداول مع</label><select id="tradeTarget" class="cash-input">${others.map(o=>`<option value="${o.id}">${o.name}</option>`).join('')}</select><div id="tradeArea"></div>`;
+  });
+  const renderTrade=()=>{
+    const t=state.players[Number(m.querySelector('#tradeTarget').value)],area=m.querySelector('#tradeArea');
+    area.innerHTML=`<div class="trade-columns"><div><h3>${p.name} يعرض</h3><input id="cashA" class="cash-input" type="number" min="0" max="${p.cash}" value="0"><div class="trade-list">${tradePropertyRows(p.id,'a')}</div></div><div><h3>${t.name} يعرض</h3><input id="cashB" class="cash-input" type="number" min="0" max="${t.cash}" value="0"><div class="trade-list">${tradePropertyRows(t.id,'b')}</div></div></div><div class="modal-actions"><button id="submitTrade" class="btn primary">تنفيذ التداول</button></div>`;
+    area.querySelector('#submitTrade').onclick=()=>executeTrade(m,p.id,t.id);
+  };
+  m.querySelector('#tradeTarget').onchange=renderTrade;renderTrade();
+}
+function tradePropertyRows(pid,prefix){
+  return BOARD.map((s,i)=>state.owners[i]===pid?{s,i}:null).filter(Boolean)
+    .filter(({s})=>!s.group || BOARD.every((x,k)=>x.group!==s.group || state.buildings[k]===0))
+    .map(({s,i})=>`<label class="trade-row"><input type="checkbox" data-trade="${prefix}" value="${i}"><span>${s.name}${state.mortgages[i]?' (مرهون)':''}</span></label>`).join('')||'<p>لا توجد عقارات قابلة للتداول.</p>'
+}
+function executeTrade(modal,aId,bId){const a=state.players[aId],b=state.players[bId],cashA=Number(modal.querySelector('#cashA').value||0),cashB=Number(modal.querySelector('#cashB').value||0);if(cashA>a.cash||cashB>b.cash)return alert('مبلغ التداول أكبر من الرصيد.');const propsA=[...modal.querySelectorAll('[data-trade="a"]:checked')].map(x=>Number(x.value)),propsB=[...modal.querySelectorAll('[data-trade="b"]:checked')].map(x=>Number(x.value));if(!propsA.length&&!propsB.length&&!cashA&&!cashB)return alert('اختر شيئاً للتداول.');if(!confirm(`${b.name}: هل تقبل هذا التداول؟`))return;a.cash=a.cash-cashA+cashB;b.cash=b.cash-cashB+cashA;propsA.forEach(i=>state.owners[i]=bId);propsB.forEach(i=>state.owners[i]=aId);log(`<b>${a.name}</b> و <b>${b.name}</b> نفذا تداولاً.`);closeModal(modal);state.phase='end';render()}
+
+function openRules(){state.phase='modal';openModal('قواعد النسخة الحالية',body=>{body.innerHTML=`<ul style="line-height:2"><li>40 خانة بالمواقع القياسية؛ البداية أسفل اليسار، السجن أعلى اليسار، الاستراحة أعلى اليمين، اذهب إلى السجن أسفل اليمين.</li><li>المرور بنقطة البداية يمنح ${money(GO_REWARD)}.</li><li>الاستراحة لا تجمع الضرائب ولا تمنح جائزة مالية.</li><li>العقار غير المشترى يدخل المزاد عند عدم شرائه.</li><li>الدبل يمنح رمية إضافية، وثلاث دبلات متتالية ترسلك للسجن.</li><li>الخروج من السجن: دبل، ${money(JAIL_FINE)}، أو بطاقة خروج.</li><li>البناء يتطلب امتلاك المجموعة كاملة ويتم بالتساوي.</li><li>الرهن يمنع تحصيل الإيجار؛ فك الرهن يكلف قيمة الرهن + 10%.</li><li>يمكن البيع والتداول والإفلاس وفق آلية البنك.</li></ul>`})}
+
+function openModal(title,fill,closable=true){
+  const tpl=$('#modalTemplate').content.cloneNode(true),back=tpl.querySelector('.modal-backdrop');back.querySelector('.modal-title').textContent=title;fill(back.querySelector('.modal-body'));const close=back.querySelector('.modal-close');if(!closable)close.style.visibility='hidden';else close.onclick=()=>{closeModal(back);state.phase='end';render()};$('#modalRoot').appendChild(back);return back
+}
+function closeModal(m){m?.remove()}
+function finishGame(){const winner=activePlayers()[0];state.phase='gameover';openModal('انتهت اللعبة',body=>{body.innerHTML=`<div class="winner">🏆 ${winner
