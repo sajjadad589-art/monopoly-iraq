@@ -7,114 +7,35 @@
   <title>مونوبولي العراق</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="three.css" />
+  <link rel="stylesheet" href="online.css" />
 </head>
 <body>
   <div id="app">
     <section id="authScreen" class="screen setup-screen">
-      <div class="setup-card auth-card">
-        <div class="brand-mark">🇮🇶</div>
-        <h1>مونوبولي العراق</h1>
-        <p>سجّل دخولك حتى نحفظ رصيدك، انتصاراتك وتقدمك.</p>
-        <input id="authName" class="big-input" placeholder="اسم اللاعب" autocomplete="nickname" />
-        <input id="authEmail" class="big-input" type="email" placeholder="البريد الإلكتروني" autocomplete="email" />
-        <input id="authPassword" class="big-input" type="password" placeholder="كلمة المرور" autocomplete="current-password" />
-        <div class="auth-actions">
-          <button id="loginBtn" class="btn primary big">تسجيل الدخول</button>
-          <button id="signupBtn" class="btn secondary big">إنشاء حساب جديد</button>
-        </div>
-        <div id="authMessage" class="form-message"></div>
-      </div>
+      <div class="setup-card auth-card"><div class="brand-mark">🇮🇶</div><h1>مونوبولي العراق</h1><p>سجّل دخولك حتى نحفظ رصيدك، انتصاراتك وتقدمك.</p><input id="authName" class="big-input" placeholder="اسم اللاعب" autocomplete="nickname" /><input id="authEmail" class="big-input" type="email" placeholder="البريد الإلكتروني" autocomplete="email" /><input id="authPassword" class="big-input" type="password" placeholder="كلمة المرور" autocomplete="current-password" /><div class="auth-actions"><button id="loginBtn" class="btn primary big">تسجيل الدخول</button><button id="signupBtn" class="btn secondary big">إنشاء حساب جديد</button></div><div id="authMessage" class="form-message"></div></div>
     </section>
 
     <section id="lobbyScreen" class="screen setup-screen hidden">
-      <div class="lobby-shell">
-        <div class="profile-bar">
-          <div><strong id="profileName">—</strong><div class="muted">الحساب الحالي</div></div>
-          <div class="wallet-box">🪙 <b id="profileCoins">0</b> Coin</div>
-          <div class="wallet-box">🏆 <b id="profileWins">0</b> فوز</div>
-          <button id="logoutBtn" class="btn danger">خروج</button>
-        </div>
-        <div class="lobby-grid">
-          <div class="setup-card lobby-card">
-            <h2>إنشاء غرفة</h2>
-            <label>عدد اللاعبين</label>
-            <select id="roomMaxPlayers" class="big-input"><option value="2">2 لاعبين</option><option value="3">3 لاعبين</option><option value="4" selected>4 لاعبين</option><option value="5">5 لاعبين</option><option value="6">6 لاعبين</option></select>
-            <label>اختر مجسمك</label>
-            <select id="tokenSelect" class="big-input"><option value="pawn">♟️ بيدق</option><option value="car">🚗 سيارة</option><option value="hat">🎩 قبعة</option><option value="plane">✈️ طائرة</option><option value="horse">🐎 حصان</option><option value="ship">⛵ سفينة</option></select>
-            <button id="createRoomBtn" class="btn primary big">إنشاء غرفة</button>
-          </div>
-          <div class="setup-card lobby-card">
-            <h2>دخول غرفة</h2>
-            <input id="joinCode" class="big-input room-code-input" maxlength="6" placeholder="كود الغرفة" />
-            <button id="joinRoomBtn" class="btn gold big">دخول</button>
-            <p class="micro">رسوم المباراة: <b>1,000 Coin</b> — الرصيد الابتدائي للحساب: <b>25,000 Coin</b>.</p>
-          </div>
-        </div>
-        <div id="lobbyMessage" class="form-message"></div>
-      </div>
+      <div class="lobby-shell"><div class="profile-bar"><div><strong id="profileName">—</strong><div class="muted">الحساب الحالي</div></div><div class="wallet-box">🪙 <b id="profileCoins">0</b> Coin</div><div class="wallet-box">🏆 <b id="profileWins">0</b> فوز</div><button id="logoutBtn" class="btn danger">خروج</button></div><div class="lobby-grid"><div class="setup-card lobby-card"><h2>إنشاء غرفة</h2><label>عدد اللاعبين</label><select id="roomMaxPlayers" class="big-input"><option value="2">2 لاعبين</option><option value="3">3 لاعبين</option><option value="4" selected>4 لاعبين</option><option value="5">5 لاعبين</option><option value="6">6 لاعبين</option></select><label>اختر مجسمك</label><select id="tokenSelect" class="big-input"><option value="pawn">♟️ بيدق</option><option value="car">🚗 سيارة</option><option value="hat">🎩 قبعة</option><option value="plane">✈️ طائرة</option><option value="horse">🐎 حصان</option><option value="ship">⛵ سفينة</option></select><button id="createRoomBtn" class="btn primary big">إنشاء غرفة</button></div><div class="setup-card lobby-card"><h2>دخول غرفة</h2><input id="joinCode" class="big-input room-code-input" maxlength="6" placeholder="كود الغرفة" /><button id="joinRoomBtn" class="btn gold big">دخول</button><p class="micro">رسوم المباراة: <b>1,000 Coin</b> — الرصيد الابتدائي للحساب: <b>25,000 Coin</b>.</p></div></div><div id="lobbyMessage" class="form-message"></div></div>
     </section>
 
-    <section id="roomScreen" class="screen setup-screen hidden">
-      <div class="room-shell">
-        <div class="setup-card room-card-main">
-          <div class="room-code-label">كود الغرفة</div>
-          <div id="roomCode" class="room-code">------</div>
-          <div id="roomStatus" class="muted">بانتظار اللاعبين...</div>
-          <div id="roomPlayers" class="room-player-list"></div>
-          <button id="startMatchBtn" class="btn primary big hidden">ابدأ المباراة</button>
-          <button id="leaveRoomBtn" class="btn secondary big">رجوع للّوبي</button>
-        </div>
-      </div>
-    </section>
+    <section id="roomScreen" class="screen setup-screen hidden"><div class="room-shell"><div class="setup-card room-card-main"><div class="room-code-label">كود الغرفة</div><div id="roomCode" class="room-code">------</div><div id="roomStatus" class="muted">بانتظار اللاعبين...</div><div id="roomPlayers" class="room-player-list"></div><button id="startMatchBtn" class="btn primary big hidden">ابدأ المباراة</button><button id="leaveRoomBtn" class="btn secondary big">رجوع للّوبي</button></div></div></section>
 
     <section id="gameScreen" class="screen game-screen hidden">
-      <header class="topbar">
-        <button class="icon-btn" id="menuBtn">☰</button>
-        <div class="turn-pill"><span>الدور:</span> <strong id="turnName">—</strong></div>
-        <div class="bank-pill">🪙 حسابك <b id="walletCoins">0</b> Coin</div>
-      </header>
-      <main class="game-layout">
-        <aside class="players-panel" id="playersPanel"></aside>
-        <section class="board-stage">
-          <div class="board-perspective">
-            <div id="board" class="board">
-              <div class="board-thickness"></div>
-              <div class="board-center">
-                <div id="threeScene" class="three-scene" aria-hidden="true"></div>
-                <div class="center-overlay">
-                  <div class="logo">مونوبولي <em>العراق</em></div>
-                  <div class="deck-row">
-                    <div class="deck community">صندوق الحظ</div>
-                    <div class="dice-zone"><div class="die" id="die1">⚀</div><div class="die" id="die2">⚀</div></div>
-                    <div class="deck chance">فرصة</div>
-                  </div>
-                </div>
-              </div>
-              <div id="tokensLayer" class="tokens-layer"></div>
-            </div>
-          </div>
-          <div class="status-strip" id="statusStrip">جاري مزامنة المباراة...</div>
-          <div class="action-bar">
-            <button id="rollBtn" class="btn primary">🎲 رمي النرد</button>
-            <button id="buyBtn" class="btn gold hidden">🏠 شراء العقار</button>
-            <button id="endTurnBtn" class="btn danger hidden">إنهاء الدور</button>
-            <button id="bankruptBtn" class="btn secondary hidden">إعلان إفلاس</button>
-          </div>
-        </section>
-        <aside class="info-panel">
-          <div class="panel-card current-space-card"><div class="space-color" id="spaceColor"></div><h3 id="spaceName">—</h3><p id="spaceMeta">—</p><div id="spaceOwner" class="owner-line"></div></div>
-          <div class="panel-card log-card"><h3>سجل المباراة</h3><div id="gameLog" class="game-log"></div></div>
-        </aside>
-      </main>
+      <header class="topbar"><button class="icon-btn" id="menuBtn">☰</button><div class="turn-pill"><span>الدور:</span> <strong id="turnName">—</strong></div><div class="bank-pill">🪙 حسابك <b id="walletCoins">0</b> Coin</div></header>
+      <main class="game-layout"><aside class="players-panel" id="playersPanel"></aside><section class="board-stage"><div class="board-perspective"><div id="board" class="board"><div class="board-thickness"></div><div class="board-center"><div id="threeScene" class="three-scene" aria-hidden="true"></div><div class="center-overlay"><div class="logo">مونوبولي <em>العراق</em></div><div class="deck-row"><div class="deck community">صندوق الحظ</div><div class="dice-zone"><div class="die" id="die1">⚀</div><div class="die" id="die2">⚀</div></div><div class="deck chance">فرصة</div></div></div></div><div id="tokensLayer" class="tokens-layer"></div></div></div><div class="status-strip" id="statusStrip">جاري مزامنة المباراة...</div><div class="action-bar"><button id="rollBtn" class="btn primary">🎲 رمي النرد</button><button id="buyBtn" class="btn gold hidden">🏠 شراء العقار</button><button id="endTurnBtn" class="btn danger hidden">إنهاء الدور</button><button id="bankruptBtn" class="btn secondary hidden">إعلان إفلاس</button></div></section><aside class="info-panel"><div class="panel-card current-space-card"><div class="space-color" id="spaceColor"></div><h3 id="spaceName">—</h3><p id="spaceMeta">—</p><div id="spaceOwner" class="owner-line"></div></div><div class="panel-card log-card"><h3>سجل المباراة</h3><div id="gameLog" class="game-log"></div></div></aside></main>
     </section>
   </div>
-
-  <div id="modalRoot"></div>
-  <template id="modalTemplate"><div class="modal-backdrop"><div class="modal-card"><div class="modal-header"><h2 class="modal-title"></h2><button class="modal-close">✕</button></div><div class="modal-body"></div></div></div></template>
-
+  <div id="modalRoot"></div><template id="modalTemplate"><div class="modal-backdrop"><div class="modal-card"><div class="modal-header"><h2 class="modal-title"></h2><button class="modal-close">✕</button></div><div class="modal-body"></div></div></div></template>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
   <script src="three-scene.js"></script>
-  <script src="game.js"></script>
+  <script src="online-config.js"></script>
+  <script src="online-board.js"></script>
+  <script src="online-auth-core.js"></script>
+  <script src="online-room.js"></script>
+  <script src="online-game-view.js"></script>
+  <script src="online-game-actions.js"></script>
+  <script src="online-main.js"></script>
 </body>
 </html>
