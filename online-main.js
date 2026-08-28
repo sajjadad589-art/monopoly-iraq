@@ -1,0 +1,2 @@
+window.MI=window.MI||{};
+(async()=>{try{MI.buildBoard();MI.wireRoomUI();MI.wireGameUI();await MI.initAuth();}catch(e){console.error(e);MI.msg('#authMessage','تعذر تشغيل اللعبة: '+(e?.message||e),'bad');MI.showScreen('authScreen');}})();
