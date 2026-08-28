@@ -1,0 +1,89 @@
+click=()=>{const p=active[turn];active=active.filter(x=>x!==p);if(leader===p)leader=null;if(turn>=active.length)turn=0;update()};
+  function finishAuction(){if(leader){leader.cash-=bid;state.owners[index]=leader.id;log(`<b>${leader.name}</b> فاز بمزاد ${s.name} مقابل ${money(bid)}.`)}closeModal(modal);state.pendingPurchase=null;state.phase='end';setStatus('انتهى المزاد.');render()}
+  update();
+}
+
+async function charge(fromId,amount,toId=null,reason='دفعة'){
+  if(amount<=0){state.players[fromId].cash+=Math.abs(amount);log(`<b>${state.players[fromId].name}</b> استلم ${money(Math.abs(amount))} — ${reason}.`);renderPlayers();return true}
+  const p=state.players[fromId];
+  if(p.cash<amount){
+    state.pendingPayment={fromId,amount,toId,reason};
+    const solved=await paymentCrisis(p,amount,reason);
+    if(!solved)return false;
+  }
+  p.cash-=amount;if(toId!=null&&!state.players[toId].bankrupt)state.players[toId].cash+=amount;
+  log(`<b>${p.name}</b> دفع ${money(amount)}${toId!=null?` إلى <b>${state.players[toId].name}</b>`:' للبنك'} — ${reason}.`);renderPlayers();return true;
+}
+
+function paymentCrisis(player,amount,reason){
+  return new Promise(resolve=>{
+    state.phase='modal';const modal=openModal('الرصيد غير كافٍ',body=>{
+      body.innerHTML=`<div class="payment-warning">${player.name} مطالب بـ <b>${money(amount)}</b> بسبب ${reason}، ورصيده ${money(player.cash)}. بع ممتلكات/مبانٍ أو ارهنها ثم اضغط «إعادة المحاولة». إذا تعذر الدفع أعلن الإفلاس.</div><div class="modal-actions"><button class="btn secondary" id="crisisManage">إدارة الأملاك</button><button class="btn primary" id="retryPay">إعادة المحاولة</button><button class="btn danger" id="bankruptBtn">إعلان الإفلاس</button></div>`;
+    },false);
+    modal.querySelector('#crisisManage').onclick=()=>{closeModal(modal);openManage(()=>paymentCrisis(player,amount,reason).then(resolve),player.id)};
+    modal.querySelector('#retryPay').onclick=()=>{if(player.cash>=amount){closeModal(modal);state.phase='end';resolve(true)}else alert('لا يزال الرصيد غير كافٍ.')};
+    modal.querySelector('#bankruptBtn').onclick=()=>{closeModal(modal);declareBankruptcy(player.id,state.pendingPayment?.toId??null);resolve(false)};
+  });
+}
+function declareBankruptcy(playerId,creditorId=null){
+  const p=state.players[playerId];p.bankrupt=true;p.cash=0;p.inJail=false;
+  BOARD.forEach((s,i)=>{if(state.owners[i]!==playerId)return;
+    // Buildings return to bank before property transfer.
+    const b=state.buildings[i];if(b===5)state.bankHotels++;else state.bankHouses+=b;state.buildings[i]=0;
+    if(creditorId!=null&&!state.players[creditorId].bankrupt){state.owners[i]=creditorId}else{state.owners[i]=null;state.mortgages[i]=false}
+  });
+  log(`<b>${p.name}</b> أعلن الإفلاس${creditorId!=null?` لصالح ${state.players[creditorId].name}`:' للبنك'}.`);state.phase='end';render();
+  if(activePlayers().length<=1)finishGame();
+}
+
+function sendToJail(reason=''){
+  const p=currentPlayer();p.pos=10;p.inJail=true;p.jailTurns=0;state.doublesInTurn=0;log(`<b>${p.name}</b> أُرسل إلى السجن${reason?` — ${reason}`:''}.`);setStatus('أُرسلت إلى السجن.');render();
+}
+function payToLeaveJail(){const p=currentPlayer();if(!p.inJail||p.cash<JAIL_FINE)return;p.cash-=JAIL_FINE;p.inJail=false;p.jailTurns=0;log(`<b>${p.name}</b> دفع ${money(JAIL_FINE)} وخرج من السجن.`);setStatus('خرجت من السجن. ارمِ النرد.');render()}
+function useJailCard(){const p=currentPlayer();if(!p.inJail)return;let deck=p.jailCards.chance?'chance':(p.jailCards.community?'community':null);if(!deck)return;p.jailCards[deck]--;p.inJail=false;p.jailTurns=0;const card=(deck==='chance'?CHANCE_TEMPLATE:COMMUNITY_TEMPLATE).find(c=>c.action.kind==='jailCard');(deck==='chance'?state.chanceDiscard:state.communityDiscard).push(card);log(`<b>${p.name}</b> استخدم بطاقة خروج مجاني من السجن.`);setStatus('خرجت من السجن. ارمِ النرد.');render()}
+
+async function drawCard(deckName){
+  const deck=deckName==='chance'?state.chance:state.community,discard=deckName==='chance'?state.chanceDiscard:state.communityDiscard;
+  if(!deck.length){deck.push(...shuffle(discard.splice(0)))}const card=deck.shift();
+  await showCard(deckName,card.text);log(`<b>${currentPlayer().name}</b> سحب بطاقة: ${card.text}`);
+  if(card.action.kind!=='jailCard')discard.push(card);
+  await applyCard(card.action);if(state.phase!=='purchase'&&state.phase!=='modal')state.phase='end';render();
+}
+function showCard(deck,text){return new Promise(resolve=>{const m=openModal(deck==='chance'?'فرصة':'صندوق الحظ',body=>{body.innerHTML=`<div style="font-size:22px;line-height:1.8;text-align:center;padding:20px">${text}</div><div class="modal-actions" style="justify-content:center"><button class="btn primary" id="cardOk">متابعة</button></div>`},false);m.querySelector('#cardOk').onclick=()=>{closeModal(m);resolve()}})}
+async function applyCard(a){const p=currentPlayer();
+  if(a.kind==='cash'){if(a.amount>=0){p.cash+=a.amount}else await charge(p.id,-a.amount,null,'بطاقة');return}
+  if(a.kind==='move'){await moveTo(a.to,a.collect);await resolveLanding();return}
+  if(a.kind==='back'){p.pos=(p.pos-a.spaces+40)%40;render();await resolveLanding();return}
+  if(a.kind==='jail'){sendToJail('بطاقة');return}
+  if(a.kind==='jailCard'){p.jailCards[a.deck]++;setStatus('احتفظت ببطاقة خروج مجاني من السجن.');return}
+  if(a.kind==='repairs'){let total=0;BOARD.forEach((s,i)=>{if(state.owners[i]===p.id){const b=state.buildings[i];if(b===5)total+=a.hotel;else total+=b*a.house}});if(total)await charge(p.id,total,null,'صيانة الممتلكات');return}
+  if(a.kind==='each'){
+    const others=activePlayers().filter(x=>x.id!==p.id);
+    if(a.amount<0){for(const o of others)await charge(p.id,-a.amount,o.id,'بطاقة لكل لاعب')}else{for(const o of others)await charge(o.id,a.amount,p.id,'بطاقة عيد الميلاد')};return
+  }
+  if(a.kind==='nearestRailroad'){
+    const stations=[5,15,25,35];const dest=stations.find(x=>x>p.pos)??5;state.extraRentMultiplier=2;await moveTo(dest,true);await resolveLanding();state.extraRentMultiplier=1;return
+  }
+  if(a.kind==='nearestUtility'){
+    const utils=[12,28];const dest=utils.find(x=>x>p.pos)??12;
+    await moveTo(dest,true);
+    // Official utility card rule: throw the dice again and pay 10× the new total if owned.
+    const d1=1+Math.floor(Math.random()*6),d2=1+Math.floor(Math.random()*6);state.lastRoll=[d1,d2];
+    $('#die1').textContent=dieFace(d1);$('#die2').textContent=dieFace(d2);log(`<b>${p.name}</b> أعاد رمي النرد للخدمة: ${d1+d2}.`);
+    state.utilitySpecial=true;await resolveLanding();state.utilitySpecial=false;return
+  }
+}
+
+function endTurn(){if(state.phase!=='end')return;advancePlayer()}
+function advancePlayer(){
+  let n=state.current;do{n=(n+1)%state.players.length}while(state.players[n].bankrupt&&n!==state.current);state.current=n;beginTurn();
+}
+
+function openManage(callback=null,playerId=null){
+  const pid=playerId??currentPlayer().id,p=state.players[pid];state.phase='modal';
+  const m=openModal(`أملاك ${p.name}`,body=>{
+    const assets=BOARD.map((s,i)=>({s,i})).filter(x=>state.owners[x.i]===pid);
+    body.innerHTML=`<p>الرصيد: <b>${money(p.cash)}</b> — البنك: ${state.bankHouses} بيت / ${state.bankHotels} فندق</p><div class="asset-grid">${assets.length?assets.map(({s,i})=>assetHTML(s,i,pid)).join(''):'لا توجد أملاك بعد.'}</div>`;
+  });
+  m.querySelectorAll('[data-build]').forEach(b=>b.onclick=()=>{buildHouse(Number(b.dataset.build));refreshManage(m,pid)});
+  m.querySelectorAll('[data-sellbuild]').forEach(b=>b.onclick=()=>{sellBuilding(Number(b.dataset.sellbuild));refr
