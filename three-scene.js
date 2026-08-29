@@ -1,140 +1,76 @@
 (()=>{
   const host=document.getElementById('threeScene');
   if(!host||!window.THREE)return;
-
+  const THREE=window.THREE;
   const scene=new THREE.Scene();
-  scene.fog=new THREE.FogExp2(0x07131f,.025);
-
-  const camera=new THREE.PerspectiveCamera(36,1,.1,120);
-  camera.position.set(8.6,8.4,10.8);
-  camera.lookAt(0,.35,0);
-
+  const camera=new THREE.PerspectiveCamera(34,1,.1,120);
+  camera.position.set(7.7,7.1,9.4); camera.lookAt(0,.45,0);
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));
-  renderer.shadowMap.enabled=true;
-  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.1;
-  host.innerHTML='';
-  host.appendChild(renderer.domElement);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.55));
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.28;
+  host.innerHTML='';host.appendChild(renderer.domElement);
 
-  const hemi=new THREE.HemisphereLight(0xbfe5ff,0x241508,1.45);scene.add(hemi);
-  const sun=new THREE.DirectionalLight(0xffe0a3,2.7);sun.position.set(5,11,7);sun.castShadow=true;sun.shadow.mapSize.set(1536,1536);sun.shadow.camera.left=-8;sun.shadow.camera.right=8;sun.shadow.camera.top=8;sun.shadow.camera.bottom=-8;scene.add(sun);
-  const blue=new THREE.PointLight(0x249cff,14,22,2);blue.position.set(-5,4,-4);scene.add(blue);
-  const warm=new THREE.PointLight(0xffa72f,11,18,2);warm.position.set(4,3.2,3);scene.add(warm);
+  scene.add(new THREE.HemisphereLight(0xe9f7ff,0x8c6945,2.05));
+  const sun=new THREE.DirectionalLight(0xfff1cf,3.2);sun.position.set(4.5,10,5.5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+  const fill=new THREE.DirectionalLight(0x9edcff,1.15);fill.position.set(-5,5,-4);scene.add(fill);
+  const warm=new THREE.PointLight(0xffc15d,8,14,2);warm.position.set(0,2.8,2.6);scene.add(warm);
 
-  const root=new THREE.Group();root.rotation.x=-.035;scene.add(root);
-  const mat=(color,rough=.7,metal=.08)=>new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});
-  const box=(w,h,d,color,x,y,z,rough=.7,metal=.05,parent=root)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color,rough,metal));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m};
-  const cyl=(r1,r2,h,color,x,y,z,segments=20,parent=root)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,segments),mat(color,.56,.06));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m};
-  const sphere=(r,color,x,y,z,parent=root)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,24,18),mat(color,.48,.08));m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m};
+  const root=new THREE.Group();root.rotation.x=-.025;scene.add(root);
+  const mat=(c,r=.65,m=.04)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+  const box=(w,h,d,c,x,y,z,r=.65,m=.04,parent=root)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,r,m));o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
+  const cyl=(r1,r2,h,c,x,y,z,seg=20,parent=root)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),mat(c,.58,.04));o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
+  const sphere=(r,c,x,y,z,parent=root)=>{const o=new THREE.Mesh(new THREE.SphereGeometry(r,22,16),mat(c,.48,.06));o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o};
 
-  // Board foundation with visible depth.
-  box(11.25,.36,11.25,0x4b311d,0,-.48,0,.85,.06);
-  box(10.75,.18,10.75,0x263a32,0,-.2,0,.92,.02);
+  // clean stone plaza
+  box(9.7,.16,9.7,0xc7ad86,0,-.12,0,.92,.01);
+  box(8.95,.10,8.95,0xdac39e,0,.01,0,.96,.0);
 
-  // Inner city platform.
-  const cityBase=box(8.75,.14,8.75,0x1f342d,0,-.06,0,.96,.02);
-  cityBase.receiveShadow=true;
+  // water ring framing the monument
+  const waterMat=new THREE.MeshPhysicalMaterial({color:0x1698c8,roughness:.16,metalness:.02,transparent:true,opacity:.9,clearcoat:1,clearcoatRoughness:.12});
+  const water=new THREE.Mesh(new THREE.RingGeometry(2.75,4.05,64),waterMat);water.rotation.x=-Math.PI/2;water.position.y=.08;water.receiveShadow=true;root.add(water);
+  const island=new THREE.Mesh(new THREE.CircleGeometry(2.65,64),mat(0xcdb28b,.92,.0));island.rotation.x=-Math.PI/2;island.position.y=.095;island.receiveShadow=true;root.add(island);
 
-  // Tigris/Euphrates inspired water ribbon.
-  const river=new THREE.Mesh(
-    new THREE.PlaneGeometry(2.15,9.45,1,18),
-    new THREE.MeshPhysicalMaterial({color:0x087da9,roughness:.18,metalness:.04,transparent:true,opacity:.92,clearcoat:1,clearcoatRoughness:.16})
-  );
-  river.rotation.x=-Math.PI/2;river.rotation.z=.12;river.position.set(.35,.035,.05);river.receiveShadow=true;root.add(river);
+  // inner road used visually for player path separation
+  const road=new THREE.Mesh(new THREE.RingGeometry(2.18,2.58,64),mat(0x44484c,.82,.03));road.rotation.x=-Math.PI/2;road.position.y=.112;root.add(road);
+  const roadLine=new THREE.Mesh(new THREE.RingGeometry(2.37,2.40,64),new THREE.MeshBasicMaterial({color:0xd6e6ee,transparent:true,opacity:.75,side:THREE.DoubleSide}));roadLine.rotation.x=-Math.PI/2;roadLine.position.y=.118;root.add(roadLine);
 
-  // Main illuminated bridge.
-  box(4.0,.16,.88,0xc9ad7c,.15,.26,.12,.62,.08);
-  box(4.08,.08,1.02,0x5f452d,.15,.12,.12,.78,.04);
-  for(let i=-3;i<=3;i++)cyl(.055,.065,.64,0x6f5031,-1.55+i*.55,-.06,.12,10);
-  for(const x of [-1.63,1.93]){
-    cyl(.08,.11,.75,0xd2b36e,x,.58,.55,10); sphere(.07,0xffd66b,x,.98,.55);
-    cyl(.08,.11,.75,0xd2b36e,x,.58,-.31,10); sphere(.07,0xffd66b,x,.98,-.31);
-  }
+  // Ishtar Gate inspired central landmark
+  const gate=new THREE.Group();gate.position.set(0,.12,-.2);root.add(gate);
+  const blue=0x14559a,blue2=0x1e6cbd,gold=0xd7a63d,stone=0xe7cf9c;
+  box(3.55,.42,1.15,blue,0,.24,0,.43,.08,gate);
+  box(3.2,2.35,1.05,blue,0,1.55,0,.38,.1,gate);
+  box(.82,3.05,1.12,blue2,-1.36,1.9,0,.35,.12,gate);
+  box(.82,3.05,1.12,blue2,1.36,1.9,0,.35,.12,gate);
+  // arch opening
+  box(1.0,1.65,1.35,0x17202b,0,1.0,.03,.95,.0,gate);
+  const arch=new THREE.Mesh(new THREE.TorusGeometry(.5,.18,12,36,Math.PI),mat(gold,.45,.18));arch.rotation.z=Math.PI;arch.position.set(0,1.8,.61);gate.add(arch);
+  // battlements
+  for(let x=-1.72;x<=1.72;x+=.43)box(.25,.28,1.16,stone,x,3.02,0,.72,.02,gate);
+  for(const tx of [-1.36,1.36])for(let x=-.34;x<=.34;x+=.34)box(.2,.26,1.18,stone,tx+x,3.47,0,.72,.02,gate);
+  // gold decorative animal plaques (simple reliefs)
+  const plaque=(x,y)=>{const p=box(.38,.18,.06,gold,x,y,.59,.4,.2,gate);p.rotation.z=(x<0?-.04:.04)};
+  for(const x of [-1.36,1.36])for(const y of [1.05,1.55,2.05,2.55])plaque(x,y);
+  for(const x of [-.92,-.46,.46,.92])plaque(x,2.55);
 
-  // Ziggurat inspired stepped landmark.
-  const zig=new THREE.Group();zig.position.set(-2.55,0,-1.75);root.add(zig);
-  box(2.35,.42,2.05,0xb6935f,0,.22,0,.82,.03,zig);
-  box(1.82,.4,1.55,0xc3a06a,0,.62,0,.8,.03,zig);
-  box(1.28,.36,1.05,0xd0af78,0,1.0,0,.78,.03,zig);
-  box(.62,.48,.58,0xdfc48d,0,1.42,0,.74,.04,zig);
-  const stair=box(.55,.12,1.5,0x9b7549,0,.46,1.02,.86,.02,zig);stair.rotation.x=-.34;
-
-  // Golden shrine dome and minarets.
-  cyl(1.02,1.02,.48,0xd6bc88,2.45,.32,-1.45,32);
-  sphere(.77,0xe9b72e,2.45,1.02,-1.45);
-  cyl(.07,.11,.78,0xe6c25a,2.45,1.66,-1.45,12);sphere(.09,0xffdc62,2.45,2.08,-1.45);
-  [[1.28,-2.36],[3.58,-2.36]].forEach(([x,z])=>{
-    cyl(.2,.27,2.55,0xcab68a,x,1.13,z,18);
-    cyl(.29,.18,.3,0xe0aa2a,x,2.45,z,16);
-    sphere(.2,0xe9b72e,x,2.7,z);
-    cyl(.04,.06,.48,0xeec961,x,3.03,z,10);
-  });
-
-  // Modern Baghdad skyline.
-  const towerColors=[0x506875,0x6d8188,0x455c69,0x627985,0x385361];
-  [[-3.7,2.6,1.45],[-2.92,3.12,2.15],[-2.15,3.42,1.15],[3.5,2.55,1.8],[4.0,1.75,1.25],[3.05,3.42,1.45]].forEach((v,i)=>{
-    const[x,z,h]=v,b=box(.63,h,.63,towerColors[i%towerColors.length],x,h/2-.03,z,.34,.28);
-    const edges=new THREE.LineSegments(new THREE.EdgesGeometry(b.geometry),new THREE.LineBasicMaterial({color:0xa8dcff,transparent:true,opacity:.22}));b.add(edges);
-    for(let y=.25;y<h-.12;y+=.31){const light=box(.4,.035,.015,0xf1c45d,x,y,z+.323,.3,.12);light.castShadow=false;}
-  });
-
-  // Freedom Monument inspired arch silhouette.
-  const archMat=mat(0xd3bd8c,.62,.08);
-  const p1=new THREE.Mesh(new THREE.BoxGeometry(.38,2.08,.48),archMat);p1.position.set(-.95,.93,2.35);p1.rotation.z=-.2;p1.castShadow=true;root.add(p1);
-  const p2=p1.clone();p2.position.x=.1;p2.rotation.z=.2;root.add(p2);
-  box(1.35,.34,.52,0xd3bd8c,-.42,1.92,2.35,.62,.08);
+  // stairs and entry court
+  for(let i=0;i<4;i++)box(2.6-i*.18,.09,.46,0xd5bd94,0,.18+i*.05,1.05+i*.23,.9,.0);
+  box(3.45,.1,2.05,0xd8c19a,0,.15,1.75,.92,.0);
 
   function palm(x,z,s=1){
-    const trunk=cyl(.075,.12,1.15*s,0x7f552b,x,.43*s,z,10);trunk.rotation.z=.035;
-    const crown=new THREE.Group();crown.position.set(x,1.0*s,z);root.add(crown);
-    for(let i=0;i<8;i++){
-      const leaf=new THREE.Mesh(new THREE.ConeGeometry(.13*s,.86*s,7),mat(0x2d8747,.9,0));
-      leaf.rotation.z=Math.PI/2.55;leaf.rotation.y=(i/8)*Math.PI*2;leaf.position.y=.1;leaf.castShadow=true;crown.add(leaf);
-    }
+    const trunk=cyl(.075,.11,1.15*s,0x845a32,x,.52*s,z,10);trunk.rotation.z=.02;
+    const crown=new THREE.Group();crown.position.set(x,1.05*s,z);root.add(crown);
+    for(let i=0;i<8;i++){const leaf=new THREE.Mesh(new THREE.ConeGeometry(.12*s,.82*s,7),mat(0x2d9a4b,.86,0));leaf.rotation.z=Math.PI/2.55;leaf.rotation.y=i/8*Math.PI*2;leaf.position.y=.08;leaf.castShadow=true;crown.add(leaf)}
   }
-  [[-4.05,3.45],[-3.75,-3.6],[4.1,3.42],[3.68,-3.3],[-1.45,4.05],[1.5,3.9],[-4.1,-.15],[4.05,.2]].forEach(([x,z],i)=>palm(x,z,.82+(i%3)*.08));
+  [[-3.25,-2.1],[3.25,-2.1],[-3.35,2.2],[3.35,2.2],[-2.25,2.95],[2.25,2.95]].forEach(([x,z],i)=>palm(x,z,.9+(i%2)*.08));
 
-  // Houses around the city give the scene real depth.
-  const houseColors=[0xd3bd95,0xa87f59,0xc5ad83,0xb68b63,0x927257];
-  for(let i=0;i<24;i++){
-    const angle=(i/24)*Math.PI*2,radius=3.75+(i%4)*.22,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius,h=.24+(i%5)*.09;
-    const house=box(.4,h,.4,houseColors[i%houseColors.length],x,h/2-.01,z,.78,.02);
-    const roof=new THREE.Mesh(new THREE.ConeGeometry(.33,.2,4),mat(i%2?0x7d4b32:0x674434,.8,.02));roof.position.set(x,h+.08,z);roof.rotation.y=Math.PI/4;roof.castShadow=true;root.add(roof);
-    house.rotation.y=-angle;
-  }
+  // small warm lamps, subtle not cluttered
+  for(const [x,z] of [[-2.25,1.7],[2.25,1.7],[-2.5,-1.8],[2.5,-1.8]]){cyl(.055,.07,.42,0x8b6338,x,.28,z,10);sphere(.09,0xffd16f,x,.54,z);}
 
-  // Ambient gold particles for premium game-table feel.
-  const particles=90,geo=new THREE.BufferGeometry(),arr=new Float32Array(particles*3);
-  for(let i=0;i<particles;i++){arr[i*3]=(Math.random()-.5)*10;arr[i*3+1]=.15+Math.random()*3.8;arr[i*3+2]=(Math.random()-.5)*10;}
-  geo.setAttribute('position',new THREE.BufferAttribute(arr,3));
-  const pts=new THREE.Points(geo,new THREE.PointsMaterial({color:0xe8c36c,size:.028,transparent:true,opacity:.42,depthWrite:false}));root.add(pts);
-
-  function resize(){
-    const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
-    renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
-  }
+  function resize(){const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
   new ResizeObserver(resize).observe(host);resize();
-
-  let t=0,mouseX=0,mouseY=0,targetX=0,targetY=0;
-  host.closest('.board')?.addEventListener('pointermove',e=>{
-    const r=host.getBoundingClientRect();targetX=((e.clientX-r.left)/Math.max(1,r.width)-.5)*.42;targetY=((e.clientY-r.top)/Math.max(1,r.height)-.5)*.24;
-  },{passive:true});
-  host.closest('.board')?.addEventListener('pointerleave',()=>{targetX=0;targetY=0;},{passive:true});
-
-  const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-  function animate(){
-    requestAnimationFrame(animate);t+=.012;
-    river.material.opacity=.89+Math.sin(t*2)*.025;
-    pts.rotation.y=t*.035;
-    if(!reduce){
-      mouseX+=(targetX-mouseX)*.035;mouseY+=(targetY-mouseY)*.035;
-      root.rotation.y=mouseX;root.rotation.x=-.035-mouseY;
-      camera.position.y=8.35+Math.sin(t*.5)*.06;
-    }
-    renderer.render(scene,camera);
-  }
-  animate();
+  const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;let t=0,targetX=0,targetY=0,rx=0,ry=0;
+  host.closest('.board')?.addEventListener('pointermove',e=>{if(reduce)return;const r=host.getBoundingClientRect();targetX=((e.clientX-r.left)/Math.max(1,r.width)-.5)*.18;targetY=((e.clientY-r.top)/Math.max(1,r.height)-.5)*.1},{passive:true});
+  host.closest('.board')?.addEventListener('pointerleave',()=>{targetX=0;targetY=0},{passive:true});
+  function animate(){requestAnimationFrame(animate);t+=.012;waterMat.opacity=.88+Math.sin(t*2)*.018;if(!reduce){rx+=(targetX-rx)*.04;ry+=(targetY-ry)*.04;root.rotation.y=rx;root.rotation.x=-.025-ry;camera.position.y=7.1+Math.sin(t*.45)*.035;}renderer.render(scene,camera)}animate();
 })();
